@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Controllers\Blog\Admin;
-
+use App\Jobs\BlogPostAfterCreateJob;
+use App\Jobs\BlogPostAfterDeleteJob;
 use App\Repositories\BlogPostRepository;
 use App\Repositories\BlogCategoryRepository;
 use App\Http\Requests\BlogPostUpdateRequest;
@@ -59,10 +60,13 @@ class PostController extends BaseController
     public function store(BlogPostCreateRequest $request)
     {
         $data = $request->input(); //отримаємо масив даних, які надійшли з форми
+        $data['user_id'] = auth()->id();
 
         $item = (new BlogPost())->create($data); //створюємо об'єкт і додаємо в БД
 
         if ($item) {
+            $job = new BlogPostAfterCreateJob($item);
+            BlogPostAfterCreateJob::dispatch($item);
             return redirect()
                 ->route('blog.admin.posts.edit', [$item->id])
                 ->with(['success' => 'Успішно збережено']);
